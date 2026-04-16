@@ -1,0 +1,88 @@
+// Simple YaatraGo (Frontend + Backend in one file using Node.js)
+
+const http = require("http");
+
+let bookings = [];
+
+// Server
+const server = http.createServer((req, res) => {
+
+    if (req.method === "GET" && req.url === "/") {
+        res.writeHead(200, { "Content-Type": "text/html" });
+
+        res.end(`
+        <h2>🚗 YaatraGo Ride Booking</h2>
+
+        <input id="pickup" placeholder="Pickup"><br><br>
+        <input id="drop" placeholder="Drop"><br><br>
+
+        <select id="rideType">
+            <option>Auto</option>
+            <option>Cab</option>
+        </select><br><br>
+
+        <button onclick="bookRide()">Book Ride</button>
+
+        <h3>Bookings:</h3>
+        <ul id="list"></ul>
+
+        <script>
+        async function bookRide() {
+            const data = {
+                pickup: document.getElementById("pickup").value,
+                drop: document.getElementById("drop").value,
+                rideType: document.getElementById("rideType").value
+            };
+
+            await fetch("/book", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify(data)
+            });
+
+            load();
+        }
+
+        async function load() {
+            const res = await fetch("/data");
+            const bookings = await res.json();
+
+            const list = document.getElementById("list");
+            list.innerHTML = "";
+
+            bookings.forEach(b => {
+                const li = document.createElement("li");
+                li.innerText = b.pickup + " → " + b.drop;
+                list.appendChild(li);
+            });
+        }
+
+        load();
+        </script>
+        `);
+    }
+
+    else if (req.method === "POST" && req.url === "/book") {
+        let body = "";
+
+        req.on("data", chunk => body += chunk);
+        req.on("end", () => {
+            const data = JSON.parse(body);
+            bookings.push(data);
+
+            res.writeHead(200);
+            res.end("Saved");
+        });
+    }
+
+    else if (req.method === "GET" && req.url === "/data") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(bookings));
+    }
+
+});
+
+// Run Server
+server.listen(5000, () => {
+    console.log("Server running at http://localhost:5000");
+});
